@@ -1,23 +1,19 @@
-Run the attached Python script EXACTLY as written. Do not modify it and
-do not design your own charts - the four template files ARE the approved
-dashboard design; the script only refreshes the data inside them.
+Please use your Python tool to run the attached script against the
+attached files.
 
-Files attached with this prompt:
-  1. build_dashboards.txt     (the script)
-  2. Planner_Extract.xlsx     (step 1's FULL extract - not the week file)
-  3. crew_index.html          (template)
-  4. crew_app.js              (template)
-  5. gantt_head.html          (template)
-  6. gantt_app.js             (template)
+1. Save the attached build_dashboards.txt as build_dashboards.py - it is
+   a Python script; the .txt extension is only there because of upload
+   restrictions. Save the four attached template files under exactly
+   their own names: crew_index.html, crew_app.js, gantt_head.html,
+   gantt_app.js.
+2. Run the script with Python in that folder (Planner_Extract.xlsx must
+   be attached too - the FULL extract, not the week file).
+3. Show me the report it prints (workdays, bars, window, clipped count).
+4. Provide both output files for download:
+     SNT-Crew-Loading.html   (crews per day, stacked by trade)
+     SNT-Gantt.html          (waterfall Gantt with floating histogram)
 
-Do this:
-  1. Save build_dashboards.txt as build_dashboards.py and the four
-     templates under exactly those names.
-  2. Run the script with Python in that folder.
-  3. Show me its printed report (workdays, bars, window, clipped count).
-  4. Give me both outputs to download:
-       SNT-Crew-Loading.html   (crews per day, stacked by trade)
-       SNT-Gantt.html          (waterfall Gantt with floating histogram)
-
-If the script errors, show me the complete error text and stop.
-Do not attempt a workaround.
+One note: the four template files are our approved dashboard design and
+the script only refreshes the data inside them, so please run it as-is
+rather than generating charts another way. If it raises an error, just
+show me the full error text.

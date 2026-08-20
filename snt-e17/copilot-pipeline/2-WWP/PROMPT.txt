@@ -1,21 +1,18 @@
-Run the attached Python script EXACTLY as written. Do not modify it and
-do not build the tab yourself - the script clones the current WWP form
-from the workbook and applies the house rules from the WWP Build
-Standard (day codes S/X/C/SC with no periods, takt-order sorting,
-Energization = VECA, duration tags stripped).
+Please use your Python tool to run the attached script against the two
+attached Excel workbooks.
 
-Files attached with this prompt:
-  1. build_wwp_tab.txt          (the script)
-  2. SNT WWP Shared.xlsx        (the live Weekly Work Plan workbook)
-  3. Planner_Extract_Week.xlsx  (step 1's week extract)
+1. Save the attached build_wwp_tab.txt as build_wwp_tab.py - it is a
+   Python script; the .txt extension is only there because of upload
+   restrictions.
+2. Run it with Python in the same folder as both workbooks.
+3. Show me the report it prints (week, tab name, activity count, NOTES).
+4. Provide the output workbook for download:
+     SNT WWP Shared - WWP.xlsx
+   It contains every existing tab unchanged plus one new "WWP MM.DD.YY"
+   tab built from the week extract.
 
-Do this:
-  1. Save build_wwp_tab.txt as build_wwp_tab.py.
-  2. Run it with Python in the same folder as both workbooks.
-  3. Show me its printed report (week, tab name, activity count, NOTES).
-  4. Give me the output workbook to download:
-       SNT WWP Shared - WWP.xlsx   (all existing tabs untouched, one new
-                                    "WWP MM.DD.YY" tab added)
-
-If the script errors, show me the complete error text and stop.
-Do not attempt a workaround.
+One note: the script clones the current WWP form from the workbook
+itself and applies our house rules (day codes S/X/C/SC with no trailing
+periods, takt-order sorting, Energization = VECA, duration tags
+stripped), so please run it as-is rather than building the tab another
+way. If it raises an error, just show me the full error text.

@@ -1,19 +1,17 @@
-Run the attached Python script EXACTLY as written. Do not write your own
-extraction code, do not modify the script, and do not try to read the
-spreadsheet yourself - on this schedule an activity is a COLORED BAR and
-the fill color IS the trade; only the script decodes that correctly.
+Please use your Python tool to run the attached script against the
+attached Excel workbook.
 
-Files attached with this prompt:
-  1. planner_extract.txt   (the script)
-  2. Interiors Planner.xlsx  (the Lookahead / takt schedule)
+1. Save the attached planner_extract.txt as planner_extract.py - it is a
+   Python script; the .txt extension is only there because of upload
+   restrictions.
+2. Run it with Python in the same folder as the workbook.
+3. Show me the report it prints, including any UNRESOLVED rows.
+4. Provide both output files for download:
+     Planner_Extract.xlsx        (full schedule - feeds the dashboards)
+     Planner_Extract_Week.xlsx   (next week only - feeds the WWP)
 
-Do this:
-  1. Save planner_extract.txt as planner_extract.py.
-  2. Run it with Python in the same folder as the workbook.
-  3. Show me the script's printed report, including any UNRESOLVED rows.
-  4. Give me both outputs to download:
-       Planner_Extract.xlsx        (full schedule - feeds the dashboards)
-       Planner_Extract_Week.xlsx   (next week only - feeds the WWP)
-
-If the script errors, show me the complete error text and stop.
-Do not attempt a workaround.
+One note: the script exists because the schedule stores activities as
+colored bars (the fill color identifies the trade contractor), and that
+decoding has to be exact. So please run the script as-is rather than
+re-implementing its logic. If it raises an error, just show me the full
+error text.
