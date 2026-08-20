@@ -80,6 +80,20 @@ button.btn.ghost:hover{background:#eef4fa}
   padding:7px 12px;cursor:pointer;color:var(--mid)}
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+/* floating crew histogram - follows the scroll */
+#float{position:fixed;right:22px;bottom:22px;z-index:40;width:384px;background:#fff;
+  border:1px solid var(--navy);border-top:4px solid var(--orange);box-shadow:0 8px 28px rgba(0,0,0,.22)}
+#float .fhead{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--navy);
+  color:#fff;cursor:move;user-select:none}
+#float .ft{font-size:11px;font-weight:700;letter-spacing:.8px}
+#float select{margin-left:auto;font:12.5px "Segoe UI",Arial;padding:2px 4px;max-width:190px;
+  border:0;border-radius:2px;cursor:pointer}
+#float #fmin{background:rgba(255,255,255,.18);border:0;color:#fff;font-size:14px;line-height:1;
+  padding:2px 8px;cursor:pointer;border-radius:2px}
+#float .fbody{padding:8px 10px 6px}
+#float .fnote{font-size:11.5px;color:var(--mid);padding:2px 2px 4px}
+#float.min .fbody{display:none}
+#fsvg .hb:hover{opacity:.75}
 </style>
 
 <header>
@@ -118,5 +132,14 @@ button.btn.ghost:hover{background:#eef4fa}
 <span class="hint" id="note" style="margin-left:auto"></span></h2>
 <div class="gwrap" id="gwrap"><div class="grid" id="grid"></div></div>
 </div>
+</div>
+<div id="float">
+  <div class="fhead" id="fdrag">
+    <span class="ft">CREWS / DAY</span>
+    <select id="fsel"></select>
+    <button id="fmin" title="collapse">&ndash;</button>
+  </div>
+  <div class="fbody"><svg id="fsvg" width="360" height="130"></svg>
+  <div class="fnote" id="fnote"></div></div>
 </div>
 <div id="tip"></div>

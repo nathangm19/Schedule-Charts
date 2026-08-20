@@ -194,4 +194,62 @@ $('zoom').onclick=ev=>{
 };
 let rt; addEventListener('resize',()=>{ if(zoomSel) return; clearTimeout(rt); rt=setTimeout(render,150); });
 $('reset').onclick=()=>{ sel.trade.clear(); sel.lvl.clear(); sel.cog.clear(); render(); };
+
+/* ---------- floating crew histogram ---------- */
+const fsel=$('fsel');
+fsel.innerHTML='<option value="-1">All trades</option>'+
+  TRADES.map((t,i)=>`<option value="${i}">${t}</option>`).join('');
+fsel.onchange=histo;
+$('fmin').onclick=()=>$('float').classList.toggle('min');
+
+function histo(){
+  const t=+fsel.value;
+  // same level / change-order filters as the chart; the dropdown picks the trade
+  const bars=BARS.filter(b=>
+    (t<0 ? (!sel.trade.size||sel.trade.has(b[0])) : b[0]===t) &&
+    (!sel.lvl.size||sel.lvl.has(zLvl[b[1]])) &&
+    (!sel.cog.size||sel.cog.has(ZCOG[b[1]])));
+  const n=ND, cnt=new Array(n).fill(0);
+  for(const b of bars) for(let i=b[2];i<=b[3];i++) cnt[i]++;
+  const W=360,H=130,padB=16,padT=12,bw=W/n;
+  const mx=Math.max(1,...cnt), sc=(H-padB-padT)/mx;
+  const col=t<0?'#007CC2':TCOL[t];
+  let svg='';
+  let seen='';
+  for(let i=0;i<n;i++){
+    const d=dO(DAYS[i]), mo=d.getFullYear()+'-'+d.getMonth();
+    if(mo!==seen){ seen=mo;
+      svg+=`<line x1="${i*bw}" y1="${padT}" x2="${i*bw}" y2="${H-padB}" stroke="#dbe2e9"/>`+
+           `<text x="${i*bw+2}" y="${H-4}" font-size="9" fill="#5f666d">${d.toLocaleDateString('en-US',{month:'short'})}</text>`;
+    }
+    if(cnt[i]) svg+=`<rect class="hb" x="${i*bw}" y="${H-padB-cnt[i]*sc}" width="${Math.max(1,bw-.6)}"`+
+      ` height="${cnt[i]*sc}" fill="${col}" data-i="${i}" data-c="${cnt[i]}"/>`;
+  }
+  svg+=`<text x="2" y="${padT-2}" font-size="10" font-weight="700" fill="#004F8C">peak ${mx}</text>`;
+  $('fsvg').innerHTML=svg;
+  const nm=t<0?(sel.trade.size?'chart-filtered trades':'all trades'):TRADES[t];
+  $('fnote').textContent=`${fmt(bars.length)} activities · ${nm} · one active bar = one crew`;
+  $('fsvg').onmousemove=ev=>{
+    const r=ev.target.closest('.hb');
+    if(!r){ hideTip(); return; }
+    showTip(ev,`<div class="th">${r.dataset.c} crew${r.dataset.c==1?'':'s'}</div>`+
+      `<div class="rowl">${dLong(DAYS[+r.dataset.i])}</div>`);
+  };
+  $('fsvg').onmouseleave=hideTip;
+}
+
+/* drag by the header; stays fixed so it follows the scroll on its own */
+(()=>{ const f=$('float'), h=$('fdrag'); let sx,sy,ox,oy,mv=false;
+  h.onmousedown=e=>{ if(e.target.tagName==='SELECT'||e.target.tagName==='BUTTON')return;
+    mv=true; sx=e.clientX; sy=e.clientY; const r=f.getBoundingClientRect(); ox=r.left; oy=r.top;
+    e.preventDefault(); };
+  addEventListener('mousemove',e=>{ if(!mv)return;
+    f.style.left=Math.max(0,Math.min(innerWidth-f.offsetWidth,ox+e.clientX-sx))+'px';
+    f.style.top =Math.max(0,Math.min(innerHeight-40,oy+e.clientY-sy))+'px';
+    f.style.right='auto'; f.style.bottom='auto'; });
+  addEventListener('mouseup',()=>mv=false);
+})();
+
+const _render=render;
+render=function(){ _render(); histo(); };
 render();
