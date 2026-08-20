@@ -9,6 +9,9 @@ const dShort=s=>dO(s).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 const dLong=s=>dO(s).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
 
 const sel={trade:new Set(), lvl:new Set(), cog:new Set()};
+let qTerms=[];                                // activity-name search, comma = OR
+const ACTL=ACTS.map(a=>a.toLowerCase());
+const qPass=b=>!qTerms.length || qTerms.some(t=>ACTL[b[4]].includes(t));
 let zoomSel=0, dayW=8;                        // px per workday (0 = fit to the panel)
 let horizon=null;                             // null=full, or workdays (5/10/30)
 let curDay=0;                                 // draggable day cursor
@@ -33,6 +36,7 @@ function ink(hex){
 $('span').textContent=`Swedish North Tower · Interior Finishes Lvl E–17 · ${DAYS[0]} to ${DAYS[ND-1]} · ${ND} workdays`;
 
 const pass=b=>
+  qPass(b) &&
   (!horizon        || b[2]<horizon) &&
   (!sel.trade.size || sel.trade.has(b[0])) &&
   (!sel.lvl.size   || sel.lvl.has(zLvl[b[1]])) &&
@@ -47,6 +51,7 @@ function chip(label,on,count,color,attrs){
 function buildChips(){
   const ct=TRADES.map(()=>0), cl=LEVELS.map(()=>0), cg=COG.map(()=>0);
   for (const b of BARS){
+    if (!qPass(b) || (horizon && b[2]>=horizon)) continue;
     const okT=!sel.trade.size||sel.trade.has(b[0]);
     const okL=!sel.lvl.size  ||sel.lvl.has(zLvl[b[1]]);
     const okG=!sel.cog.size  ||sel.cog.has(ZCOG[b[1]]);
@@ -99,7 +104,7 @@ function render(){
     $('kLast').textContent =dShort(DAYS[Math.max(...bars.map(b=>b[3]))]);
   } else { $('kFirst').textContent='—'; $('kLast').textContent='—'; }
   const tsel=sel.trade.size ? (sel.trade.size===1?TRADES[[...sel.trade][0]]:sel.trade.size+' trades') : 'All trades';
-  $('kActN').textContent=tsel;
+  $('kActN').textContent=qTerms.length ? `${tsel} · "${qTerms.join('" or "')}"` : tsel;
   $('note').textContent=`${fmt(bars.length)} activities · ${zs.size} zones`;
 
   if(!bars.length){ $('grid').innerHTML='<div class="empty" style="grid-column:1/-1">Nothing matches this filter.</div>'; return; }
@@ -248,7 +253,11 @@ $('zoom').onclick=ev=>{
   render();
 };
 let rt; addEventListener('resize',()=>{ if(zoomSel) return; clearTimeout(rt); rt=setTimeout(render,150); });
-$('reset').onclick=()=>{ sel.trade.clear(); sel.lvl.clear(); sel.cog.clear(); render(); };
+$('reset').onclick=()=>{ sel.trade.clear(); sel.lvl.clear(); sel.cog.clear();
+  qTerms=[]; $('q').value=''; render(); };
+let qt; $('q').oninput=()=>{ clearTimeout(qt); qt=setTimeout(()=>{
+  qTerms=$('q').value.toLowerCase().split(',').map(t=>t.trim()).filter(Boolean);
+  render(); },160); };
 
 /* ---------- floating crew histogram ---------- */
 const fsel=$('fsel');
@@ -261,6 +270,7 @@ function histo(){
   const t=+fsel.value, N=NDv();
   // same level / change-order / window filters as the chart; dropdown picks the trade
   const bars=BARS.filter(b=>
+    qPass(b) &&
     (!horizon || b[2]<horizon) &&
     (t<0 ? (!sel.trade.size||sel.trade.has(b[0])) : b[0]===t) &&
     (!sel.lvl.size||sel.lvl.has(zLvl[b[1]])) &&

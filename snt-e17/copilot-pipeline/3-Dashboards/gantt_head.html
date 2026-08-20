@@ -89,6 +89,8 @@ button.btn.ghost:hover{background:#eef4fa}
   padding:7px 12px;cursor:pointer;color:var(--mid)}
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+#q{font:13px "Segoe UI",Arial;padding:6px 9px;border:1px solid var(--line);border-radius:3px;width:210px}
+#q:focus{outline:2px solid var(--navy-2);outline-offset:-1px}
 /* floating crew histogram - follows the scroll */
 #float{position:fixed;right:22px;bottom:22px;z-index:40;width:384px;background:#fff;
   border:1px solid var(--navy);border-top:4px solid var(--orange);box-shadow:0 8px 28px rgba(0,0,0,.22)}
@@ -122,6 +124,7 @@ button.btn.ghost:hover{background:#eef4fa}
 <div class="card">
 <h2>Filters <span class="hint">nothing selected = everything &middot; ctrl-click for multiple</span>
 <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+  <input id="q" type="search" placeholder="Search activity&hellip; e.g. punch" spellcheck="false">
   <span class="hint">Window</span>
   <span class="seg" id="range"></span>
   <span class="hint">Zoom</span>
