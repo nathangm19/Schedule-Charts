@@ -10,7 +10,11 @@ const dLong=s=>dO(s).toLocaleDateString('en-US',{weekday:'short',month:'short',d
 
 const sel={trade:new Set(), lvl:new Set(), cog:new Set()};
 let zoomSel=0, dayW=8;                        // px per workday (0 = fit to the panel)
-const dayWidth=()=> zoomSel || Math.max(4,Math.floor((document.getElementById('gwrap').clientWidth-322)/ND));
+let horizon=null;                             // null=full, or workdays (5/10/30)
+let curDay=0;                                 // draggable day cursor
+const NDv=()=> horizon?Math.min(horizon,ND):ND;
+const dayWidth=()=> zoomSel ||
+  Math.min(64,Math.max(4,Math.floor((document.getElementById('gwrap').clientWidth-322)/NDv())));
 const LANE=19, BAND=24;                       // lanes stack inside a zone row
 
 /* one row per activity: lane = position in the zone's start-sorted list */
@@ -29,6 +33,7 @@ function ink(hex){
 $('span').textContent=`Swedish North Tower · Interior Finishes Lvl E–17 · ${DAYS[0]} to ${DAYS[ND-1]} · ${ND} workdays`;
 
 const pass=b=>
+  (!horizon        || b[2]<horizon) &&
   (!sel.trade.size || sel.trade.has(b[0])) &&
   (!sel.lvl.size   || sel.lvl.has(zLvl[b[1]])) &&
   (!sel.cog.size   || sel.cog.has(ZCOG[b[1]]));
@@ -78,8 +83,10 @@ const hideTip=()=>{tip.style.display='none';};
 function render(){
   buildChips();
   dayW=dayWidth();
+  const N=NDv();
+  if(curDay>=N) curDay=0;
   const bars=BARS.filter(pass);
-  const W=ND*dayW;
+  const W=N*dayW;
 
   // KPIs
   const zs=new Set(bars.map(b=>b[1]));
@@ -102,10 +109,12 @@ function render(){
   const zoneIds=Object.keys(byZone).map(Number)
     .sort((a,b)=>zLvl[a]-zLvl[b] || Math.min(...byZone[a].map(x=>x[2]))-Math.min(...byZone[b].map(x=>x[2])));
 
-  // month bands + week ticks (week = first WORKDAY of the week, so holidays don't drop a tick)
+  // month bands + week ticks (week = first WORKDAY of the week, so holidays
+  // don't drop a tick) + every day's date once there's room for it
   let axis='', gl='';
   const mos=[]; let seenMo='', seenWk=null;
-  for(let i=0;i<ND;i++){
+  const showDays = dayW>=13;
+  for(let i=0;i<N;i++){
     const d=dO(DAYS[i]), x=i*dayW;
     const mo=d.getFullYear()+'-'+d.getMonth();
     const wk=Math.floor((d-dO(DAYS[0]))/864e5/7);
@@ -116,8 +125,16 @@ function render(){
     } else if(wk!==seenWk){ seenWk=wk;
       axis+=`<div class="div" style="left:${x}px"></div>`;
       gl  +=`<div class="gl" style="left:${x}px"></div>`;
-      if(dayW>=8) axis+=`<div class="wk" style="left:${x}px">${d.getDate()}</div>`;
+      if(!showDays && dayW>=8) axis+=`<div class="wk" style="left:${x}px">${d.getDate()}</div>`;
     }
+    if(showDays) axis+=`<div class="dy" style="left:${x}px;width:${dayW}px">${d.getDate()}</div>`;
+  }
+  // spotlight the next 6 weeks when looking at the full window
+  const SPOT=Math.min(30,N);
+  let spot='';
+  if(!horizon && N>SPOT){
+    spot=`<div class="spot" style="left:0;width:${SPOT*dayW}px"></div>`;
+    axis+=`<div class="spotlab" style="left:${SPOT*dayW+5}px">&larr; NEXT 6 WEEKS</div>`;
   }
   // a month label only renders if its own band can hold it — no collisions at any zoom
   mos.forEach((m,i)=>{
@@ -140,10 +157,11 @@ function render(){
     // next-start per lane, so a short bar can put its name in the empty space after it
     let inner='';
     L.out.forEach(([b,ln],i)=>{
-      const x=b[2]*dayW, w=Math.max(3,(b[3]-b[2]+1)*dayW-1), c=TCOL[b[0]];
-      const nm=esc(ACTS[b[4]]), lw=labelW(ACTS[b[4]]), top=2+ln*LANE;
+      const e2=Math.min(b[3],N-1), clip=e2<b[3];
+      const x=b[2]*dayW, w=Math.max(3,(e2-b[2]+1)*dayW-1), c=TCOL[b[0]];
+      const nm=esc(ACTS[b[4]])+(clip?' &rsaquo;':''), lw=labelW(ACTS[b[4]]), top=2+ln*LANE;
       const inside = w>=lw;
-      const outside = !inside && ND*dayW-(x+w)>=lw+6;
+      const outside = !inside && !clip && N*dayW-(x+w)>=lw+6;
       inner+=`<div class="bar" style="left:${x}px;top:${top}px;width:${w}px;background:${c};color:${ink(c)}"`+
              ` data-t="${b[0]}" data-z="${z}" data-s="${b[2]}" data-e="${b[3]}" data-a="${b[4]}">${inside?nm:''}</div>`;
       if(outside) inner+=`<div class="blab" style="left:${x+w+4}px;top:${top}px">${nm}</div>`;
@@ -157,8 +175,37 @@ function render(){
   // gridlines painted once behind every row
   let gL=$('glayer');
   if(!gL){ gL=document.createElement('div'); gL.id='glayer'; $('gwrap').appendChild(gL); }
-  gL.style.left=getComputedStyle(document.documentElement).getPropertyValue('--labw');
-  gL.style.width=W+'px'; gL.style.height=H+'px'; gL.innerHTML=gl;
+  const labw=getComputedStyle(document.documentElement).getPropertyValue('--labw');
+  gL.style.left=labw;
+  gL.style.width=W+'px'; gL.style.height=H+'px'; gL.innerHTML=spot+gl;
+
+  // the day cursor lives in the chart and drives the histogram
+  let cur=$('cur');
+  if(!cur){ cur=document.createElement('div'); cur.id='cur';
+    cur.innerHTML='<div class="knob"></div>';
+    $('gwrap').appendChild(cur); wireCursor(cur); }
+  cur.style.top='44px'; cur.style.height=H+'px';
+  placeCursor();
+}
+
+function placeCursor(){
+  const cur=$('cur'); if(!cur) return;
+  const labw=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--labw'));
+  cur.style.left=(labw+(curDay+0.5)*dayW)+'px';
+  cur.querySelector('.knob').textContent=dShort(DAYS[curDay]);
+}
+function wireCursor(cur){
+  let drag=false;
+  cur.onpointerdown=e=>{ drag=true; cur.setPointerCapture(e.pointerId); e.preventDefault(); };
+  cur.onpointermove=e=>{
+    if(!drag) return;
+    const labw=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--labw'));
+    const g=$('gwrap'), r=g.getBoundingClientRect();
+    const x=e.clientX-r.left+g.scrollLeft-labw;
+    const d=Math.max(0,Math.min(NDv()-1,Math.floor(x/dayW)));
+    if(d!==curDay){ curDay=d; placeCursor(); histo(); }
+  };
+  cur.onpointerup=()=>drag=false;
 }
 /* one delegated listener instead of 3,000+ per-row handlers */
 let hiA=null, hiB=null;
@@ -184,6 +231,14 @@ $('grid').addEventListener('mousemove',ev=>{
 $('grid').addEventListener('mouseleave',()=>{unlight(); hideTip();});
 
 /* ---------- controls ---------- */
+const RANGES=[['Next wk',5],['2 wk',10],['6 wk',30],['Full',0]];
+$('range').innerHTML=RANGES.map(([n,v])=>`<button type="button" data-h="${v}" aria-pressed="${(v||null)===horizon}">${n}</button>`).join('');
+$('range').onclick=ev=>{
+  const b=ev.target.closest('button'); if(!b) return;
+  horizon=+b.dataset.h||null;
+  $('range').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',(+x.dataset.h||null)===horizon));
+  render();
+};
 const ZOOMS=[['Fit',0],['Normal',8],['Wide',16]];
 $('zoom').innerHTML=ZOOMS.map(([n,v])=>`<button type="button" data-w="${v}" aria-pressed="${v===zoomSel}">${n}</button>`).join('');
 $('zoom').onclick=ev=>{
@@ -203,37 +258,50 @@ fsel.onchange=histo;
 $('fmin').onclick=()=>$('float').classList.toggle('min');
 
 function histo(){
-  const t=+fsel.value;
-  // same level / change-order filters as the chart; the dropdown picks the trade
+  const t=+fsel.value, N=NDv();
+  // same level / change-order / window filters as the chart; dropdown picks the trade
   const bars=BARS.filter(b=>
+    (!horizon || b[2]<horizon) &&
     (t<0 ? (!sel.trade.size||sel.trade.has(b[0])) : b[0]===t) &&
     (!sel.lvl.size||sel.lvl.has(zLvl[b[1]])) &&
     (!sel.cog.size||sel.cog.has(ZCOG[b[1]])));
-  const n=ND, cnt=new Array(n).fill(0);
-  for(const b of bars) for(let i=b[2];i<=b[3];i++) cnt[i]++;
-  const W=360,H=130,padB=16,padT=12,bw=W/n;
-  const mx=Math.max(1,...cnt), sc=(H-padB-padT)/mx;
-  const col=t<0?'#007CC2':TCOL[t];
-  let svg='';
-  let seen='';
-  for(let i=0;i<n;i++){
+  // crews per day per trade, stacked in the schedule's own colors
+  const cnt=Array.from({length:N},()=>new Map());
+  for(const b of bars){
+    const e=Math.min(b[3],N-1);
+    for(let i=b[2];i<=e;i++) cnt[i].set(b[0],(cnt[i].get(b[0])||0)+1);
+  }
+  const tot=cnt.map(m=>{let s=0; m.forEach(v=>s+=v); return s;});
+  const W=360,H=130,padB=16,padT=12,bw=W/N;
+  const mx=Math.max(1,...tot), sc=(H-padB-padT)/mx;
+  let svg=''; let seen='';
+  for(let i=0;i<N;i++){
     const d=dO(DAYS[i]), mo=d.getFullYear()+'-'+d.getMonth();
     if(mo!==seen){ seen=mo;
       svg+=`<line x1="${i*bw}" y1="${padT}" x2="${i*bw}" y2="${H-padB}" stroke="#dbe2e9"/>`+
-           `<text x="${i*bw+2}" y="${H-4}" font-size="9" fill="#5f666d">${d.toLocaleDateString('en-US',{month:'short'})}</text>`;
+           `<text x="${i*bw+2}" y="${H-4}" font-size="9" fill="#5f666d">${d.toLocaleDateString('en-US',{month:'short'})}${N<=30?' '+d.getDate():''}</text>`;
     }
-    if(cnt[i]) svg+=`<rect class="hb" x="${i*bw}" y="${H-padB-cnt[i]*sc}" width="${Math.max(1,bw-.6)}"`+
-      ` height="${cnt[i]*sc}" fill="${col}" data-i="${i}" data-c="${cnt[i]}"/>`;
+    let y=H-padB;
+    const ts=[...cnt[i].keys()].sort((a,b)=>a-b);
+    for(const tr of ts){
+      const h=cnt[i].get(tr)*sc; y-=h;
+      svg+=`<rect class="hb" x="${i*bw}" y="${y}" width="${Math.max(1,bw-.6)}" height="${h}"`+
+           ` fill="${TCOL[tr]}" data-i="${i}" data-t="${tr}" data-c="${cnt[i].get(tr)}"/>`;
+    }
   }
+  // day-cursor marker
+  svg+=`<line x1="${(curDay+0.5)*bw}" y1="${padT-6}" x2="${(curDay+0.5)*bw}" y2="${H-padB}"`+
+       ` stroke="#F88900" stroke-width="2"/>`;
   svg+=`<text x="2" y="${padT-2}" font-size="10" font-weight="700" fill="#004F8C">peak ${mx}</text>`;
   $('fsvg').innerHTML=svg;
   const nm=t<0?(sel.trade.size?'chart-filtered trades':'all trades'):TRADES[t];
-  $('fnote').textContent=`${fmt(bars.length)} activities · ${nm} · one active bar = one crew`;
+  $('fnote').innerHTML=`<b>${dShort(DAYS[curDay])}: ${fmt(tot[curDay]||0)} crew${tot[curDay]===1?'':'s'}</b>`+
+    ` &middot; ${nm} &middot; drag the orange line in the chart`;
   $('fsvg').onmousemove=ev=>{
     const r=ev.target.closest('.hb');
     if(!r){ hideTip(); return; }
-    showTip(ev,`<div class="th">${r.dataset.c} crew${r.dataset.c==1?'':'s'}</div>`+
-      `<div class="rowl">${dLong(DAYS[+r.dataset.i])}</div>`);
+    showTip(ev,`<div class="th">${r.dataset.c} &middot; ${TRADES[+r.dataset.t]}</div>`+
+      `<div class="rowl">${dLong(DAYS[+r.dataset.i])} &middot; ${tot[+r.dataset.i]} total</div>`);
   };
   $('fsvg').onmouseleave=hideTip;
 }

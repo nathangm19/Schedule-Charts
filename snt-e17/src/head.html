@@ -45,6 +45,10 @@ button.btn.ghost:hover{background:#eef4fa}
 .gwrap{overflow:auto;max-height:74vh;position:relative;border-top:1px solid var(--line)}
 .grid{display:grid;grid-template-columns:var(--labw) 1fr;min-width:max-content;position:relative;z-index:1}
 #glayer{position:absolute;top:44px;z-index:0;pointer-events:none}
+#cur{position:absolute;width:14px;margin-left:-7px;z-index:6;cursor:ew-resize;touch-action:none}
+#cur::before{content:"";position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--orange)}
+#cur .knob{position:sticky;top:46px;margin-left:-14px;width:42px;background:var(--orange);color:#fff;
+  font-size:9.5px;font-weight:700;text-align:center;border-radius:2px;padding:1px 0;pointer-events:none}
 .hdrcell{position:sticky;top:0;left:0;z-index:6;background:#f5f7fa;border-right:1px solid var(--line);
   border-bottom:1px solid var(--line);padding:0 12px;display:flex;align-items:flex-end;width:var(--labw);
   font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--mid);height:44px;padding-bottom:6px}
@@ -52,6 +56,11 @@ button.btn.ghost:hover{background:#eef4fa}
 .axis .mo{position:absolute;top:5px;font-size:11px;font-weight:700;color:var(--navy);white-space:nowrap;
   padding-left:4px;overflow:hidden}
 .axis .wk{position:absolute;top:25px;font-size:10px;color:var(--mid);white-space:nowrap;padding-left:3px}
+.axis .dy{position:absolute;top:26px;font-size:9.5px;color:var(--mid);text-align:center;font-variant-numeric:tabular-nums}
+.axis .spotlab{position:absolute;top:24px;font-size:9px;font-weight:700;letter-spacing:.6px;color:#8a6100;
+  background:#ffe9b3;border:1px solid #e8c96a;border-radius:2px;padding:1px 6px;white-space:nowrap;z-index:2}
+.spot{position:absolute;top:0;bottom:0;background:rgba(249,179,0,.10);border-left:1px solid rgba(249,179,0,.55);
+  border-right:1px solid rgba(249,179,0,.55)}
 .axis .div{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
 .axis .modiv{background:#b9c3cd}
 .lab{position:sticky;left:0;z-index:4;background:#fff;border-right:1px solid var(--line);
@@ -113,6 +122,8 @@ button.btn.ghost:hover{background:#eef4fa}
 <div class="card">
 <h2>Filters <span class="hint">nothing selected = everything &middot; ctrl-click for multiple</span>
 <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+  <span class="hint">Window</span>
+  <span class="seg" id="range"></span>
   <span class="hint">Zoom</span>
   <span class="seg" id="zoom"></span>
   <button class="btn ghost" id="reset">Clear all</button>
