@@ -207,8 +207,9 @@ function shiftWeek(w,n){const d=new Date(w+'T00:00:00');d.setDate(d.getDate()+7*
 function fmtWeek(w){const d=new Date(w+'T00:00:00');
   return 'Week of '+d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
 
-const SECTIONS=['Level 1','Level 2','Level 3','Level 4','Change Orders','Site / Exterior'];
-const ORGS=['General Contractor','Drywall','Electrical','Mechanical Piping','Plumbing','Sheet Metal',
+const SEED=window.WWP_SEED||null;   // a build can embed real project data here
+const SECTIONS=SEED?SEED.sections:['Level 1','Level 2','Level 3','Level 4','Change Orders','Site / Exterior'];
+const ORGS=SEED?SEED.orgs:['General Contractor','Drywall','Electrical','Mechanical Piping','Plumbing','Sheet Metal',
 'Paint','Flooring','Casework','Fire Protection','Cleanup','ALL'];
 
 function sampleWeek(week){
@@ -239,9 +240,14 @@ function sampleWeek(week){
 
 class LocalStore{
   constructor(){this.kind='local';
-    this.db=JSON.parse(localStorage.getItem('wwp-db')||'null');
-    if(!this.db){const w=nextMonday();this.db={version:1,weeks:{[w]:sampleWeek(w)}};this.flush();}}
-  flush(){localStorage.setItem('wwp-db',JSON.stringify(this.db));}
+    const key=SEED?'wwp-db-'+SEED.tag:'wwp-db';
+    this.key=key;
+    this.db=JSON.parse(localStorage.getItem(key)||'null');
+    if(!this.db){
+      this.db=SEED?{version:1,weeks:{[SEED.week]:SEED.activities.map(a=>({...a,id:uid()}))}}
+                  :{version:1,weeks:{[nextMonday()]:sampleWeek(nextMonday())}};
+      this.flush();}}
+  flush(){localStorage.setItem(this.key||'wwp-db',JSON.stringify(this.db));}
   async me(){return {name:localStorage.getItem('wwp-name')||'You',role:'admin',org:null};}
   async login(name){localStorage.setItem('wwp-name',name);return this.me();}
   async getWeek(w){return {version:this.db.version,activities:this.db.weeks[w]||[]};}
@@ -274,15 +280,21 @@ class ApiStore{
 }
 
 /* ================= app state ============================================ */
-let store, user=null, week=nextMonday(), mode='plan', acts=[], version=0, editing=null;
+let store, user=null, week=(window.WWP_SEED?window.WWP_SEED.week:nextMonday()),
+    mode='plan', acts=[], version=0, editing=null;
 const $=id=>document.getElementById(id);
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('on');
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2600);};
 
-function codes(a){ // derive S/X/C/SC per planned day
+function codes(a){ // derive S/X/C/SC per planned day (Excel WWP semantics:
+  // work carried IN from last week gets no S; work that CONTINUES past
+  // Friday gets no C — those flags ride in from the import)
   const idx=a.days.map((v,i)=>v?i:-1).filter(i=>i>=0);
   const out={};
-  idx.forEach((d,k)=>{out[d]= idx.length===1?'SC': k===0?'S': k===idx.length-1?'C':'X';});
+  idx.forEach((d,k)=>{
+    const isS=k===0&&!a.pre, isC=k===idx.length-1&&!a.cont;
+    out[d]= isS&&isC&&idx.length===1?'SC' : isS&&idx.length>1?'S' : isC?'C' : 'X';
+  });
   return out;
 }
 function canEdit(a){
@@ -506,7 +518,9 @@ $('csvFile').onchange=async e=>{
     for(let d=0;d<5;d++){const day=new Date(mon);day.setDate(mon.getDate()+d);
       if(s<=day&&day<=f)days[d]=1;}
     if(!days.some(Boolean))continue;
-    const a={id:uid(),week,section:mapSection(r[iL]),floor:r[iL]||'',area:r[iZ]||'',
+    const fri=new Date(mon);fri.setDate(mon.getDate()+4);
+    const a={id:uid(),week,pre:s<mon?1:0,cont:f>fri?1:0,
+      section:mapSection(r[iL]),floor:r[iL]||'',area:r[iZ]||'',
       desc:r[iA],org:mapOrg(r[iT]),foreman:'',days,track:{},added:{},dap:null,varCat:'',varReason:'',
       created:{by:(user?user.name:'Import'),at:new Date().toISOString()},updated:null};
     acts.push(a); await store.save(a); n++;
