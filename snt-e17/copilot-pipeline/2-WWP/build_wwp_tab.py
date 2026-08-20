@@ -1,0 +1,363 @@
+#!/usr/bin/env python3
+"""
+WWP TAB BUILDER - writes next week's Weekly Work Plan tab into the live
+"SNT WWP Shared" workbook, from the Planner_Extract_Week file that step 1
+produced.
+
+Run in Copilot 365 with BOTH files attached (the WWP workbook and
+Planner_Extract_Week.xlsx), or locally:  python build_wwp_tab.py
+
+HOW IT STAYS FORMAT-PROOF
+It never invents formatting. It finds the newest existing "WWP MM.DD.YY"
+tab in the workbook and clones it: header rows, styles, day-code
+conditional formatting, dropdown validations, print setup - all copied
+from the colleagues' own current form. Only the body rows and the week
+date are new. The section list (Level E ... Elevators 1-4) is read from
+that same tab, so if the form gains a section this script follows it.
+The workbook is repacked by zip surgery - images, external links and the
+67 other tabs pass through byte-for-byte untouched.
+
+HOUSE RULES APPLIED TO THE BODY (from the WWP Build Standard)
+  - day codes S / X / C / SC, never with a trailing period (a period
+    triggers the "complete per plan" green highlight)
+  - "(2d;0c)" duration tags stripped from activity names
+  - Energization work is VECA (the electrician) and files under the level
+    named in the activity text
+  - sort inside each section: Floor -> Area in takt-plan order -> Org
+  - foreman filled from the same org's rows on the newest existing tab
+  - judgment calls (red flags, owner-furnished, ICU doors) carry comments
+"""
+import datetime, glob, os, re, zipfile, collections
+from xml.sax.saxutils import escape
+import openpyxl
+
+# --------------------------------------------------------------- CONFIG
+WWP_FILE     = None            # None = auto: the .xlsx with WWP tabs inside
+EXTRACT_FILE = None            # None = auto: *Extract_Week*.xlsx
+WEEK_START   = None            # "2026-08-24" or None = next Monday
+NEW_TAB      = None            # None = "WWP MM.DD.YY" for that Monday
+OUT_FILE     = None            # None = overwrite name + " - WWP" suffix
+# -----------------------------------------------------------------------
+
+# ---- trade -> WWP organization (JOBDATA!V, validated against prior tabs)
+ORG = {'Veca':'VECA','Firstline':'Firstline','Pipefitter':'MMFS Mechanical Piping',
+ 'Sheet Metal':'MMFS Sheet Metal','Plumbing':'MMFS Plumbing','Medgas':'Mac-Miller Med gas',
+ 'Goldfinch':'Goldfinch','Long Painting':'Long Painting','All Trades':'ALL',
+ 'Fairweather':'Fairweather Masonry','G&W':'G&W','Flynn Roof':'Flynn','Flynn MP':'Flynn',
+ 'Camblin':'Camblin','Pro Clean':'ProClean','Acendent':'Ascendent','McKinstry':'Mckinstry',
+ 'Creo':'CREO','APEX':'Apex','HTI':'HTI','PCI':'PCI','Kendell':'Kendall','Lumenomics':'Lumenomics',
+ 'Interior Tech':'Interior Tech','Hudson Bay':'Hudson Bay','Grazinni':'Grazzini','Wilkie':'Wilkie',
+ 'TKE':'TKE','Cody James':'Cody James','Mortenson':'Mortenson','NW Precast':'Northwest Precast',
+ 'Walters & Wolf':'Walters & Wolf','Nelco':'Nelco','Spectrum':'Spectrum','Pevco':'Pevco',
+ 'MM-Controls':'Mac-Miller Controls',
+ 'AHJ':'ALL',                  # inspections - prior tabs book these to ALL
+ 'Owner Furn.,':'Mortenson',   # owner-furnished install, GC-coordinated
+ 'Complete':'ALL', 'Issues':'ALL'}
+SEC_OF_LEVEL = {'Level E':'Level E','Level D':'Level D','Level C':'Level C','Level B':'Level B',
+ 'LVL 1':'Level 1','LVL 3':'Level 3','LVL 6':'Level 6','LVL 7':'Level 7','Level 8':'Level 8',
+ 'LVL 9':'Level 9','LVL 14':'Level 14','Level 14':'Level 14','LVL 15':'Level 15','Roof':'Level 16'}
+FLOOR_OF_SEC = {'Level E':'LVL E','Level D':'LVL D','Level C':'LVL C','Level B':'LVL B','Level A':'LVL A',
+ 'Level 1':'LVL 1','Level 3':'LVL 3','Level 6':'LVL 6','Level 7':'LVL 7','Level 8':'LVL 8',
+ 'Level 9':'LVL 9','Level 10':'LVL 10','Level 11':'LVL 11','Level 12':'LVL 12','Level 14':'LVL 14',
+ 'Level 15':'LVL 15','Level 16':'LVL16','Level 17':'LVL 17'}
+ZMAP = {'Z1':'Zone 1','Z2':'Zone 2','Z3':'Zone 3','Z4':'Zone 4'}
+DUR  = re.compile(r'\s*\(\s*\d+\s*d\s*;\s*\d+\s*c\s*\)\s*$', re.I)
+EPOCH = datetime.date(1899, 12, 30)
+
+notes = collections.Counter()
+
+def classify(d):
+    lvl, zone, act, trade = d['Level'], d['Zone'], d['Activity'], d['Trade']
+    comment = ''
+    if lvl == 'Energization':
+        m = re.search(r'Level\s*0?(\d+)\s*$', act)
+        sec = 'Level %s' % int(m.group(1)) if m else 'Level 9'
+        zone = 'Energization'
+        notes['energization routed by level named in activity'] += 1
+    elif lvl == 'Elevators':
+        sec = 'Elevators 1-4' if 'Public' in zone else 'Elevators 5-10'
+    elif lvl == 'Stairs':
+        sec = 'Stair 2'
+    else:
+        sec = SEC_OF_LEVEL.get(lvl)
+        if sec is None:
+            sec = 'Level 1'; notes['UNMAPPED LEVEL "%s" -> filed under Level 1, check it' % lvl] += 1
+    org = ORG.get(trade)
+    if org is None:
+        org = 'ALL'
+        if trade == 'Status (no trade color)':
+            comment = 'Status-colored on the Planner - trade not stated, assign by hand'
+        elif trade == 'UNRESOLVED':
+            comment = 'Fill color not in the Planner legend - assign trade by hand'
+        else:
+            notes['trade "%s" not in ORG map -> ALL' % trade] += 1
+    if 'ICU Door' in act:
+        org = 'Goldfinch'; notes['ICU Doors -> Goldfinch (prior-tab convention)'] += 1
+    if trade == 'Issues':
+        comment = 'Constraint flag carried from flow schedule - not a crew assignment'
+        org = 'Mortenson' if 'PERMIT' in act.upper() else 'ALL'
+    if trade == 'Owner Furn.,':
+        comment = 'Owner-furnished install'
+    z = ZMAP.get(zone, zone)
+    floor = '' if lvl in ('Elevators',) else FLOOR_OF_SEC.get(sec, '')
+    return sec, floor, z, org, comment
+
+# ------------------------------------------------------------ locate files
+def find(pattern_test, what):
+    hits = [f for f in glob.glob("**/*.xlsx", recursive=True)
+            if pattern_test(f) and not os.path.basename(f).startswith("~")]
+    if not hits:
+        raise SystemExit("Cannot find %s. Attach it and re-run." % what)
+    hits.sort(key=lambda f: -os.path.getsize(f))
+    return hits[0]
+
+wwp_path = WWP_FILE or find(lambda f: 'extract' not in f.lower() and 'planner' not in f.lower(),
+                            "the WWP workbook")
+ext_path = EXTRACT_FILE or find(lambda f: 'extract_week' in f.lower().replace(' ', '_'),
+                                "Planner_Extract_Week.xlsx")
+print("WWP workbook :", wwp_path)
+print("Week extract :", ext_path)
+
+# ------------------------------------------------------------ target week
+if WEEK_START:
+    MON = datetime.date.fromisoformat(WEEK_START)
+else:
+    t = datetime.date.today()
+    MON = t + datetime.timedelta(days=(7 - t.weekday()) % 7 or 7)
+DAYS = [MON + datetime.timedelta(days=i) for i in range(5)]
+NAME = NEW_TAB or MON.strftime('WWP %m.%d.%y')
+print("Week of      :", MON, "->", NAME)
+
+def marks(s, e):
+    out = [''] * 6
+    for i, d in enumerate(DAYS):
+        if s <= d <= e:
+            if s == e:   out[i] = 'SC'
+            elif d == s: out[i] = 'S'
+            elif d == e: out[i] = 'C'
+            else:        out[i] = 'X'
+    return out
+
+# ------------------------------------------------------------ activities
+exwb = openpyxl.load_workbook(ext_path, data_only=True)
+exsh = exwb['Extract'] if 'Extract' in exwb.sheetnames else exwb.active
+hdr = [c.value for c in exsh[1]]
+items = []
+for row in exsh.iter_rows(min_row=2, values_only=True):
+    d = dict(zip(hdr, row))
+    if not d.get('Activity'):
+        continue
+    d['Start'] = d['Start'].date() if isinstance(d['Start'], datetime.datetime) else d['Start']
+    d['Finish'] = d['Finish'].date() if isinstance(d['Finish'], datetime.datetime) else d['Finish']
+    if d['Start'] > DAYS[-1] or d['Finish'] < DAYS[0]:
+        continue
+    sec, floor, z, org, comment = classify(d)
+    items.append(dict(sec=sec, floor=floor, area=z,
+                      desc=DUR.sub('', str(d['Activity'])).strip(), org=org,
+                      comment=comment, marks=marks(d['Start'], d['Finish']),
+                      start=d['Start'], src=d.get('Row') or 0))
+if not items:
+    raise SystemExit("No activities in the extract fall in the week of %s." % MON)
+print("Activities   : %d in the week" % len(items))
+
+# ------------------------------------------------------------ template tab
+zin = zipfile.ZipFile(wwp_path)
+wbxml = zin.read('xl/workbook.xml').decode('utf-8')
+rels  = zin.read('xl/_rels/workbook.xml.rels').decode('utf-8')
+rid2t = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="([^"]+)"', rels))
+sheets = re.findall(r'<sheet name="([^"]+)" sheetId="(\d+)"[^>]*r:id="(rId\d+)"\s*/>', wbxml)
+tpl = None
+for n, sid, rid in sheets:
+    m = re.match(r'WWP (\d\d)\.(\d\d)\.(\d\d)$', n)
+    if m:
+        dte = datetime.date(2000 + int(m.group(3)), int(m.group(1)), int(m.group(2)))
+        if tpl is None or dte > tpl[0]:
+            tpl = (dte, n, rid2t[rid])
+if tpl is None:
+    raise SystemExit("No 'WWP MM.DD.YY' tab found in %s - wrong workbook?" % wwp_path)
+print("Template tab :", tpl[1], "(%s)" % tpl[2])
+if any(n == NAME for n, _, _ in sheets):
+    NAME += " - NEW"
+    print("Tab exists; writing as:", NAME)
+
+T = zin.read('xl/' + tpl[2]).decode('utf-8')
+try:
+    SS = [''.join(re.findall(r'<t[^>]*>([^<]*)</t>', si))
+          for si in re.findall(r'<si>(.*?)</si>', zin.read('xl/sharedStrings.xml').decode('utf-8'), re.S)]
+except KeyError:
+    SS = []
+
+def row_cells(rxml):
+    out = []
+    for c in re.finditer(r'<c r="([A-Z]+)\d+"'
+                         r'(?: s="(\d+)")?(?: t="(\w+)")?\s*(?:/>|>(.*?)</c>)', rxml, re.S):
+        col, s, t, body = c.groups()
+        v = None
+        if body:
+            if t == 'inlineStr':
+                v = ''.join(re.findall(r'<t[^>]*>([^<]*)</t>', body))
+            else:
+                mv = re.search(r'<v>([^<]*)</v>', body)
+                if mv:
+                    v = SS[int(mv.group(1))] if t == 's' else mv.group(1)
+        out.append((col, int(s) if s else 0, v))
+    return out
+
+# section rows carry only F; data rows carry D/E/G too. Styles and the
+# section list come from the template itself.
+SEC_ST = DAT_ST = None
+SECTIONS = []
+fore_of, fore_o = collections.defaultdict(collections.Counter), collections.defaultdict(collections.Counter)
+ROW_ATTR = 'spans="2:19" ht="22.5" customHeight="1"'
+for m in re.finditer(r'<row r="(\d+)"([^>]*)>(.*?)</row>', T, re.S):
+    r = int(m.group(1))
+    if r < 15:
+        continue
+    cells = {c[0]: c for c in row_cells(m.group(3))}
+    F = cells.get('F', (None, 0, None))[2]
+    D = cells.get('D', (None, 0, None))[2]
+    G = cells.get('G', (None, 0, None))[2]
+    if F and not D and not G:
+        SECTIONS.append(F.strip())
+        if SEC_ST is None:
+            SEC_ST = {c: s for c, s, _ in cells.values()}
+            ROW_ATTR = m.group(2).strip()
+    elif F and G:
+        if DAT_ST is None:
+            DAT_ST = {c: s for c, s, _ in cells.values()}
+        H = cells.get('H', (None, 0, None))[2]
+        if H:
+            fore_o[G.strip()][H.strip()] += 1
+            if D:
+                fore_of[(G.strip(), D.strip())][H.strip()] += 1
+if not (SEC_ST and DAT_ST and SECTIONS):
+    raise SystemExit("Could not read section/data row styles off %s - "
+                     "has the WWP form changed shape?" % tpl[1])
+print("Sections     : %d read from the template" % len(SECTIONS))
+
+missing = sorted({i['sec'] for i in items} - set(SECTIONS))
+if missing:
+    raise SystemExit("These sections are needed but not on the template tab: %s\n"
+                     "Add them to the form (or fix the mapping) and re-run." % missing)
+
+def foreman(org, floor):
+    if org == 'ALL':
+        return ''
+    c = fore_of.get((org, floor)) or fore_o.get(org)
+    return c.most_common(1)[0][0] if c else ''
+
+# ------------------------------------------------------------ compose XML
+COLS = [c for c in 'BCDEFGHIJKLMNOPQRS']
+def cX(ref, st, txt=None):
+    if txt in (None, ''):
+        return '<c r="%s" s="%d"/>' % (ref, st)
+    return ('<c r="%s" s="%d" t="inlineStr"><is><t xml:space="preserve">%s</t></is></c>'
+            % (ref, st, escape(txt)))
+
+buckets = collections.defaultdict(list)
+for i in items:
+    buckets[i['sec']].append(i)
+for k in buckets:  # Floor -> Area (takt order = first appearance on Planner) -> Org
+    order = {}
+    for i in buckets[k]:
+        order[i['area']] = min(order.get(i['area'], 10**9), i['src'])
+    buckets[k].sort(key=lambda i: (i['floor'], order[i['area']], i['area'],
+                                   i['org'].lower(), i['start'], i['desc'].lower()))
+
+body = []
+r = 15
+for sec in SECTIONS:
+    body.append('<row r="%d" %s>%s</row>' % (r, ROW_ATTR,
+        ''.join(cX('%s%d' % (c, r), SEC_ST.get(c, 0), sec if c == 'F' else None) for c in COLS)))
+    r += 1
+    for it in buckets.pop(sec, []):
+        vals = {'D': it['floor'], 'E': it['area'], 'F': it['desc'], 'G': it['org'],
+                'H': foreman(it['org'], it['floor']), 'I': it['comment'],
+                'J': it['marks'][0], 'K': it['marks'][1], 'L': it['marks'][2],
+                'M': it['marks'][3], 'N': it['marks'][4]}
+        body.append('<row r="%d" %s>%s</row>' % (r, ROW_ATTR,
+            ''.join(cX('%s%d' % (c, r), DAT_ST.get(c, 0), vals.get(c)) for c in COLS)))
+        r += 1
+    for _ in range(3):
+        body.append('<row r="%d" %s>%s</row>' % (r, ROW_ATTR,
+            ''.join(cX('%s%d' % (c, r), DAT_ST.get(c, 0), None) for c in COLS)))
+        r += 1
+assert not buckets
+last = r - 1
+
+head = T[:T.index('<sheetData>') + len('<sheetData>')]
+hdr_rows = T[T.index('<sheetData>') + len('<sheetData>'):]
+hdr_rows = hdr_rows[:re.search(r'<row r="1[5-9]\d*"', hdr_rows).start()]
+
+# the whole week header hangs off L11 (STARTING ON) - move it, refresh caches
+new_serial = (MON - EPOCH).days
+hdr_rows = re.sub(r'(<c r="L11"[^>]*>)(?:<v>[^<]*</v>)?(</c>)',
+                  r'\g<1><v>%d</v>\g<2>' % new_serial, hdr_rows)
+for i, col in enumerate('JKLMNO'):
+    hdr_rows = re.sub(r'(<c r="%s13"[^>]*>)(<f>[^<]*</f>)?(?:<v>[^<]*</v>)?(</c>)' % col,
+                      r'\g<1>\g<2><v>%d</v>\g<3>' % (new_serial + i), hdr_rows)
+
+tail = T[T.index('</sheetData>'):]
+cf14 = None
+for m in re.finditer(r'<conditionalFormatting sqref="[^"]+">(.*?)</conditionalFormatting>', tail, re.S):
+    if m.group(1).count('<cfRule') >= 10:
+        cf14 = m.group(1)
+tail = re.sub(r'<conditionalFormatting sqref="[^"]+">.*?</conditionalFormatting>', '', tail, flags=re.S)
+if cf14:
+    ins = tail.index('</mergeCells>') + len('</mergeCells>') if '</mergeCells>' in tail \
+          else tail.index('</sheetData>') + len('</sheetData>')
+    tail = tail[:ins] + ('<conditionalFormatting sqref="J15:O%d">%s</conditionalFormatting>'
+                         % (last, cf14)) + tail[ins:]
+else:
+    print("WARNING: day-code conditional formatting block not found on the template;"
+          " the new tab will not color S/X/C codes.")
+
+head = re.sub(r'<dimension ref="[^"]+"/>', '<dimension ref="A1:S%d"/>' % last, head)
+head = re.sub(r'<sheetView tabSelected="1"', '<sheetView', head)
+head = re.sub(r'topLeftCell="A\d+"', 'topLeftCell="A14"', head)
+sheet = head + hdr_rows + ''.join(body) + tail
+
+# ------------------------------------------------------------ repack zip
+nums = [int(m) for m in re.findall(r'worksheets/sheet(\d+)\.xml', rels)]
+newsheet = 'worksheets/sheet%d.xml' % (max(nums) + 1)
+newrid = 'rId%d' % (max(int(m) for m in re.findall(r'Id="rId(\d+)"', rels)) + 1)
+newsid = max(int(s) for _, s, _ in sheets) + 1
+rels = rels.replace('</Relationships>',
+    '<Relationship Id="%s" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+    'relationships/worksheet" Target="%s"/></Relationships>' % (newrid, newsheet))
+ct = zin.read('[Content_Types].xml').decode('utf-8')
+ct = ct.replace('</Types>',
+    '<Override PartName="/xl/%s" ContentType="application/vnd.openxmlformats-officedocument.'
+    'spreadsheetml.worksheet+xml"/></Types>' % newsheet)
+wbxml = re.sub(r'(<sheet name="%s"[^>]*/>)' % re.escape(tpl[1]),
+               r'<sheet name="%s" sheetId="%d" r:id="%s"/>\g<1>'
+               % (escape(NAME), newsid, newrid), wbxml, count=1)
+
+# clone the template's rels (printer settings) for the new sheet
+tplnum = re.search(r'sheet(\d+)\.xml', tpl[2]).group(1)
+try:
+    newrels = zin.read('xl/worksheets/_rels/sheet%s.xml.rels' % tplnum)
+except KeyError:
+    newrels = None
+
+out_path = OUT_FILE or os.path.splitext(os.path.basename(wwp_path))[0] + ' - WWP.xlsx'
+zout = zipfile.ZipFile(out_path, 'w', zipfile.ZIP_DEFLATED)
+repl = {'xl/workbook.xml': wbxml, 'xl/_rels/workbook.xml.rels': rels,
+        '[Content_Types].xml': ct}
+for it in zin.infolist():
+    if it.filename == 'xl/calcChain.xml':
+        continue                       # dropped -> full recalc on open
+    data = repl[it.filename].encode('utf-8') if it.filename in repl else zin.read(it.filename)
+    if it.filename == '[Content_Types].xml':
+        data = data.replace(b'<Override PartName="/xl/calcChain.xml" ContentType='
+                            b'"application/vnd.openxmlformats-officedocument.spreadsheetml.calcChain+xml"/>', b'')
+    zout.writestr(it, data)
+zout.writestr('xl/' + newsheet, sheet.encode('utf-8'))
+if newrels:
+    zout.writestr('xl/worksheets/_rels/sheet%d.xml.rels' % (max(nums) + 1), newrels)
+zout.close(); zin.close()
+
+print("\nWROTE %s" % out_path)
+print("  tab '%s'  |  %d activities  |  rows 15-%d" % (NAME, len(items), last))
+for k, v in notes.items():
+    print("  NOTE:", k, "x%d" % v)
