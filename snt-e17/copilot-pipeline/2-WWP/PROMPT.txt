@@ -1,12 +1,21 @@
+IMPORTANT - how to attach: use "+ > Upload from this device" and pick
+every file from a plain local folder such as Downloads. Files picked out
+of OneDrive/SharePoint-synced folders arrive as cloud references that
+the Python tool cannot open. Copy them to Downloads first if needed.
+
 Please use your Python tool to run the attached script against the two
 attached Excel workbooks.
 
-1. Save the attached build_wwp_tab.txt as build_wwp_tab.py - it is a
+1. First list the files in your Python working directory (/mnt/data)
+   and confirm these attachments are all physically present:
+   build_wwp_tab.txt, SNT WWP Shared.xlsx, Planner_Extract_Week.xlsx.
+   If any are missing, stop and tell me which - do not work around it.
+2. Save the attached build_wwp_tab.txt as build_wwp_tab.py - it is a
    Python script; the .txt extension is only there because of upload
    restrictions.
-2. Run it with Python in the same folder as both workbooks.
-3. Show me the report it prints (week, tab name, activity count, NOTES).
-4. Provide the output workbook for download:
+3. Run it with Python in the same folder as both workbooks.
+4. Show me the report it prints (week, tab name, activity count, NOTES).
+5. Provide the output workbook for download:
      SNT WWP Shared - WWP.xlsx
    It contains every existing tab unchanged plus one new "WWP MM.DD.YY"
    tab built from the week extract.

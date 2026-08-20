@@ -10,6 +10,15 @@ cannot run an installed program, but it runs Python on attached files.
     _Week + SNT WWP Shared ──2──> new "WWP MM.DD.YY" tab
     Planner_Extract (full) ──3──> SNT-Crew-Loading.html + SNT-Gantt.html
 
+## Two rules that make every run work (learned the hard way)
+1. **Attach with "+ > Upload from this device", picking files from a
+   plain local folder like Downloads.** A file picked out of a
+   OneDrive/SharePoint-synced folder arrives as a cloud reference that
+   Copilot's Python tool cannot open. Copy inputs to Downloads first.
+2. Every prompt starts by making Copilot **list /mnt/data** and confirm
+   the attachments physically landed before running - if one is missing
+   it stops and names it instead of improvising.
+
 ## How to run a step
 1. Open Copilot 365 chat (a model with code execution - GPT/Claude both work).
 2. Attach the files listed at the top of that step's PROMPT.txt

@@ -1,15 +1,24 @@
+IMPORTANT - how to attach: use "+ > Upload from this device" and pick
+every file from a plain local folder such as Downloads. Files picked out
+of OneDrive/SharePoint-synced folders arrive as cloud references that
+the Python tool cannot open. Copy them to Downloads first if needed.
+
 Please use your Python tool to run the attached script against the
 attached files.
 
-1. Save the attached build_dashboards.txt as build_dashboards.py - it is
+1. First list the files in your Python working directory (/mnt/data)
+   and confirm these attachments are all physically present:
+   build_dashboards.txt, Planner_Extract.xlsx, crew_index.html, crew_app.js, gantt_head.html, gantt_app.js.
+   If any are missing, stop and tell me which - do not work around it.
+2. Save the attached build_dashboards.txt as build_dashboards.py - it is
    a Python script; the .txt extension is only there because of upload
    restrictions. Save the four attached template files under exactly
    their own names: crew_index.html, crew_app.js, gantt_head.html,
    gantt_app.js.
-2. Run the script with Python in that folder (Planner_Extract.xlsx must
+3. Run the script with Python in that folder (Planner_Extract.xlsx must
    be attached too - the FULL extract, not the week file).
-3. Show me the report it prints (workdays, bars, window, clipped count).
-4. Provide both output files for download:
+4. Show me the report it prints (workdays, bars, window, clipped count).
+5. Provide both output files for download:
      SNT-Crew-Loading.html   (crews per day, stacked by trade)
      SNT-Gantt.html          (waterfall Gantt with floating histogram)
 

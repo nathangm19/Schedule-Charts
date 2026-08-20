@@ -1,12 +1,21 @@
+IMPORTANT - how to attach: use "+ > Upload from this device" and pick
+every file from a plain local folder such as Downloads. Files picked out
+of OneDrive/SharePoint-synced folders arrive as cloud references that
+the Python tool cannot open. Copy them to Downloads first if needed.
+
 Please use your Python tool to run the attached script against the
 attached Excel workbook.
 
-1. Save the attached planner_extract.txt as planner_extract.py - it is a
+1. First list the files in your Python working directory (/mnt/data)
+   and confirm these attachments are all physically present:
+   planner_extract.txt, and the Interiors Planner workbook.
+   If any are missing, stop and tell me which - do not work around it.
+2. Save the attached planner_extract.txt as planner_extract.py - it is a
    Python script; the .txt extension is only there because of upload
    restrictions.
-2. Run it with Python in the same folder as the workbook.
-3. Show me the report it prints, including any UNRESOLVED rows.
-4. Provide both output files for download:
+3. Run it with Python in the same folder as the workbook.
+4. Show me the report it prints, including any UNRESOLVED rows.
+5. Provide both output files for download:
      Planner_Extract.xlsx        (full schedule - feeds the dashboards)
      Planner_Extract_Week.xlsx   (next week only - feeds the WWP)
 
