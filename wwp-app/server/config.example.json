@@ -1,0 +1,16 @@
+{
+  "adminCode": "change-me-admin",
+  "orgCodes": {
+    "General Contractor": "gc-1234",
+    "Drywall": "dry-1234",
+    "Electrical": "ele-1234",
+    "Mechanical Piping": "mp-1234",
+    "Plumbing": "plb-1234",
+    "Sheet Metal": "sm-1234",
+    "Paint": "pnt-1234",
+    "Flooring": "flr-1234",
+    "Casework": "cw-1234",
+    "Fire Protection": "fp-1234",
+    "Cleanup": "cln-1234"
+  }
+}
