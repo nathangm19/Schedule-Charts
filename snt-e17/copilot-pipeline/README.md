@@ -1,4 +1,8 @@
 # SNT Takt Pipeline for Copilot 365
+
+> **Streamlined path (current):** the **SNT WWP Builder** Copilot agent runs all three
+> steps in one chat — attach the two live workbooks, say "run". Its kit lives in
+> `agent/`. The per-step folders below remain the manual fallback.
 Swedish North Tower · Interior Finishes Lvl E-17 · Mortenson
 
 Three steps, three packages, three prompts. Each package is a Python
