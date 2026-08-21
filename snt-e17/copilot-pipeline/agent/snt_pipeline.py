@@ -18,6 +18,12 @@ import re, shutil, subprocess, sys, zipfile
 from pathlib import Path
 
 SRC = Path("/mnt/data") if Path("/mnt/data").is_dir() else Path(".")
+WEEK = None
+for a in sys.argv[1:]:
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", a):
+        WEEK = a
+if WEEK:
+    print(f"Target week override: Monday {WEEK}")
 OUT = Path(".").resolve()
 
 def sheet_names(x):
@@ -42,6 +48,8 @@ def run_stage(title, script_stem, staging):
     stage.mkdir()
     for src, name in staging:
         shutil.copy(src, stage / name)
+    if WEEK:
+        (stage / "week_override.txt").write_text(WEEK)
     shutil.copy(find_script(script_stem), stage / (script_stem + ".py"))
     print(f"\n{'='*62}\nSTAGE: {title}\n{'='*62}")
     r = subprocess.run([sys.executable, script_stem + ".py"],

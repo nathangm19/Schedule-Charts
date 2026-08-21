@@ -232,6 +232,9 @@ def main():
         flush()
 
     # 5. the target week ------------------------------------------------
+    global WEEK_START
+    if os.path.exists("week_override.txt"):
+        WEEK_START = open("week_override.txt").read().strip()
     if WEEK_START:
         wk_a = datetime.date.fromisoformat(WEEK_START)
     else:

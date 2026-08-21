@@ -119,6 +119,8 @@ print("WWP workbook :", wwp_path)
 print("Week extract :", ext_path)
 
 # ------------------------------------------------------------ target week
+if os.path.exists('week_override.txt'):
+    WEEK_START = open('week_override.txt').read().strip()
 if WEEK_START:
     MON = datetime.date.fromisoformat(WEEK_START)
 else:
@@ -181,6 +183,14 @@ if any(n == NAME for n, _, _ in sheets):
     print("Tab exists; writing as:", NAME)
 
 T = zin.read('xl/' + tpl[2]).decode('utf-8')
+
+# every WWP tab, newest first - foremen are harvested from all of them,
+# because the newest tab is usually a sparse future-week skeleton
+wwp_tabs = sorted(
+    [(datetime.date(2000+int(m.group(3)), int(m.group(1)), int(m.group(2))), rid2t[rid])
+     for n, sid, rid in sheets
+     for m in [re.match(r'WWP (\d\d)\.(\d\d)\.(\d\d)$', n)] if m],
+    reverse=True)
 try:
     SS = [''.join(re.findall(r'<t[^>]*>([^<]*)</t>', si))
           for si in re.findall(r'<si>(.*?)</si>', zin.read('xl/sharedStrings.xml').decode('utf-8'), re.S)]
@@ -225,11 +235,22 @@ for m in re.finditer(r'<row r="(\d+)"([^>]*)>(.*?)</row>', T, re.S):
     elif F and G:
         if DAT_ST is None:
             DAT_ST = {c: s for c, s, _ in cells.values()}
-        H = cells.get('H', (None, 0, None))[2]
-        if H:
-            fore_o[G.strip()][H.strip()] += 1
-            if D:
-                fore_of[(G.strip(), D.strip())][H.strip()] += 1
+# foreman lookup: walk the tabs newest-to-oldest so the most recent
+# real staffing wins, but sparse future skeletons don't blank it out
+for _d, target in wwp_tabs:
+    X = T if target == tpl[2] else zin.read('xl/' + target).decode('utf-8')
+    for m2 in re.finditer(r'<row r="(\d+)"[^>]*>(.*?)</row>', X, re.S):
+        if int(m2.group(1)) < 15:
+            continue
+        cs = {c[0]: c for c in row_cells(m2.group(2))}
+        G2 = cs.get('G', (None, 0, None))[2]
+        H2 = cs.get('H', (None, 0, None))[2]
+        D2 = cs.get('D', (None, 0, None))[2]
+        if G2 and H2:
+            fore_o[G2.strip()][H2.strip()] += 1
+            if D2:
+                fore_of[(G2.strip(), D2.strip())][H2.strip()] += 1
+
 if not (SEC_ST and DAT_ST and SECTIONS):
     raise SystemExit("Could not read section/data row styles off %s - "
                      "has the WWP form changed shape?" % tpl[1])

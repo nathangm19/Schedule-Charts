@@ -128,6 +128,7 @@ for lv,z in out['zones']:
 out['cog']=[g[0] for g in GROUPS]; out['zcog']=zcog
 
 # ------------------------------------------------------------- window
+if os.path.exists('week_override.txt'): START=open('week_override.txt').read().strip()
 if START: mon=datetime.date.fromisoformat(START)
 else:
     t=datetime.date.today()

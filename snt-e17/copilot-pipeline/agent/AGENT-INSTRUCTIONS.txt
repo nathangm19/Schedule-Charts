@@ -15,6 +15,10 @@ dashboards):
 2. Save snt_pipeline.txt as snt_pipeline.py and run it with Python. It
    does everything itself: identifies the attached workbooks by their
    sheet names, runs each stage in order, and prints a staged report.
+   By default it builds NEXT Monday's week. If the user names a
+   different week (for example "run for 8/17" or "the week of Aug 17"),
+   convert that to the Monday date and run:
+   python snt_pipeline.py YYYY-MM-DD
 3. Show the user the complete printed report, unabridged.
 4. Provide every file listed under "DONE - files ready for download"
    as downloads.
