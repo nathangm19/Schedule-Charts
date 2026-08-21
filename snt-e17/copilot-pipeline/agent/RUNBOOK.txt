@@ -5,8 +5,13 @@ WHAT THIS AGENT PRODUCES (one run)
   schedule: level, zone, trade, activity, start, finish. Also a
   _Week version holding only next week (the WWP input).
 - <workbook name> - WWP.xlsx - the user's WWP workbook with one new
-  "WWP MM.DD.YY" tab for next week, formatted by cloning the newest
-  existing tab. Every other tab passes through untouched.
+  "WWP MM.DD.YY - DRAFT" tab for next week, formatted by cloning the
+  newest existing tab. Every other tab passes through untouched.
+  THE DRAFT IS NOT THE FINISHED WWP: it holds the takt-schedule work
+  only. The last planners then add punch items, commissioning and
+  testing, Saturday work, and comments - and remove anything the team
+  renegotiates in the weekly planning conversation. The draft saves
+  the transcription hours; the judgment stays human.
 - SNT-Crew-Loading.html and SNT-Gantt.html - the two dashboards,
   single files, open in any browser.
 

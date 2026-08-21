@@ -30,7 +30,12 @@ RULES THAT KEEP THE RESULTS CORRECT
 - If the pipeline stops with an error, show the full error text and
   stop. Do not attempt a workaround; tell the user to report the error.
 - If the report lists UNRESOLVED rows, point them out to the user:
-  those are the only rows that need a human to assign a trade.
+  those rows need a human to assign a trade.
+- When you deliver the WWP workbook, remind the user the new tab is a
+  DRAFT of the takt work: the team still adds punch items,
+  commissioning/testing, Saturday work, and comments, and removes
+  anything renegotiated - the draft replaces the transcription, not
+  the planning conversation.
 - If no workbooks are attached, do not run anything; tell the user to
   attach this week's "Interiors Planner" (and "SNT WWP Shared" if they
   want the weekly tab), uploading from their Downloads folder - files

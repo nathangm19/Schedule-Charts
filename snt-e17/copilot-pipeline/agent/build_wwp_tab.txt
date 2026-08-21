@@ -125,7 +125,7 @@ else:
     t = datetime.date.today()
     MON = t + datetime.timedelta(days=(7 - t.weekday()) % 7 or 7)
 DAYS = [MON + datetime.timedelta(days=i) for i in range(5)]
-NAME = NEW_TAB or MON.strftime('WWP %m.%d.%y')
+NAME = NEW_TAB or MON.strftime('WWP %m.%d.%y - DRAFT')
 print("Week of      :", MON, "->", NAME)
 
 def marks(s, e):
@@ -358,6 +358,9 @@ if newrels:
 zout.close(); zin.close()
 
 print("\nWROTE %s" % out_path)
+print("  This tab is a DRAFT of the takt work only. The last planners")
+print("  still add: punch items, commissioning/testing, Saturday work,")
+print("  comments/constraints - and remove work the team renegotiates.")
 print("  tab '%s'  |  %d activities  |  rows 15-%d" % (NAME, len(items), last))
 for k, v in notes.items():
     print("  NOTE:", k, "x%d" % v)
