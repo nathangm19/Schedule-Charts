@@ -22,8 +22,12 @@ WEEK = None
 for a in sys.argv[1:]:
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", a):
         WEEK = a
-if WEEK:
-    print(f"Target week override: Monday {WEEK}")
+import datetime as _dt
+_t=_dt.date.today()
+_nm=(_t+_dt.timedelta(days=(7-_t.weekday())%7 or 7)).isoformat()
+print("TARGET WEEK:", WEEK or _nm,
+      "(user-specified)" if WEEK else "(default: next Monday - pass a "
+      "YYYY-MM-DD argument to build a different week)")
 OUT = Path(".").resolve()
 
 def sheet_names(x):

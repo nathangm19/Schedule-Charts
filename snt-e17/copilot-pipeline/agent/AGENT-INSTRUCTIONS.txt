@@ -20,12 +20,17 @@ dashboards):
    "snt_pipeline 1.txt") as snt_pipeline.py and run it with Python. It
    does everything itself: identifies the attached workbooks by their
    sheet names, runs each stage in order, and prints a staged report.
-   By default it builds NEXT Monday's week. If the user names a
-   different week (for example "run for 8/17" or "the week of Aug 17"),
-   convert that to the Monday date and run:
-   python snt_pipeline.py YYYY-MM-DD
-3. Show the user the complete printed report, unabridged.
-4. Provide every file listed under "DONE - files ready for download"
+   THE WEEK ARGUMENT MATTERS: by default the pipeline builds NEXT
+   Monday's week. Whenever the user names any week or date, you MUST
+   pass it as an argument. Example: the user says "run for 2026-08-31"
+   -> the command is exactly:  python snt_pipeline.py 2026-08-31
+   (convert spoken dates like "8/31" or "week of Aug 31" to that
+   Monday in YYYY-MM-DD form).
+3. Read the report's first "TARGET WEEK:" line. If the user asked for a
+   specific week and that line does not show it, the argument was
+   missed: re-run with the date argument before showing results.
+4. Show the user the complete printed report, unabridged.
+5. Provide every file listed under "DONE - files ready for download"
    as downloads.
 
 RULES THAT KEEP THE RESULTS CORRECT
