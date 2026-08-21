@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SNT WWP Builder — User Guide</title>
+<style>
+  :root{
+    --blue:#007CC2; --dkblue:#004F8C; --ink:#231F20;
+    --gray:#808080; --ltgray:#E6E6E6;
+    --green:#4F8B36; --gold:#F9B300; --orange:#F88900;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Franklin Gothic Book","Libre Franklin",Arial,sans-serif;
+    color:var(--ink); background:#f4f6f8; line-height:1.5; font-size:15px;
+  }
+  h1,h2,h3,.stepnum{font-family:"Franklin Gothic Medium","Libre Franklin",Arial,sans-serif; font-weight:600;}
+  .page{max-width:860px; margin:0 auto; background:#fff;}
+  header{
+    background:linear-gradient(135deg,var(--dkblue),var(--blue));
+    color:#fff; padding:38px 48px 30px;
+  }
+  header .proj{font-size:12px; letter-spacing:.18em; text-transform:uppercase; opacity:.85; margin-bottom:8px;}
+  header h1{font-size:30px; line-height:1.15;}
+  header p{margin-top:10px; max-width:620px; font-size:15px; opacity:.95;}
+  main{padding:34px 48px 48px;}
+  section{margin-bottom:34px;}
+  h2{color:var(--dkblue); font-size:20px; border-bottom:3px solid var(--blue);
+     padding-bottom:6px; margin-bottom:16px;}
+  h3{font-size:15px; color:var(--dkblue); margin:14px 0 6px;}
+  p{margin-bottom:10px;}
+  ul,ol{margin:0 0 10px 22px;}
+  li{margin-bottom:6px;}
+  .step{display:flex; gap:16px; margin-bottom:18px; break-inside:avoid;}
+  .stepnum{
+    flex:0 0 34px; height:34px; border-radius:50%; background:var(--blue); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+  }
+  .step .body{flex:1; padding-top:4px;}
+  .step h3{margin-top:0; color:var(--ink); font-size:16px;}
+  .callout{
+    border-left:5px solid var(--gold); background:#fdf6e3; padding:12px 16px;
+    margin:12px 0; border-radius:0 4px 4px 0;
+  }
+  .callout.red{border-left-color:var(--orange); background:#fdf0e3;}
+  .callout.green{border-left-color:var(--green); background:#f0f6ea;}
+  .callout b:first-child{display:block; margin-bottom:4px;}
+  code,.cmd{
+    font-family:Consolas,Menlo,monospace; font-size:13.5px;
+    background:#eef3f7; border:1px solid var(--ltgray); border-radius:4px; padding:1px 6px;
+  }
+  .cmd{display:block; padding:10px 14px; margin:8px 0; background:#f0f4f8;
+       border-left:4px solid var(--blue); white-space:pre-wrap;}
+  table{border-collapse:collapse; width:100%; margin:10px 0; font-size:14px;}
+  th{background:var(--dkblue); color:#fff; text-align:left; padding:8px 10px;}
+  td{border:1px solid var(--ltgray); padding:7px 10px; vertical-align:top;}
+  tr:nth-child(even) td{background:#f7f9fb;}
+  .chip{display:inline-block; background:var(--ltgray); border-radius:3px;
+        padding:0 7px; font-size:12.5px; margin:0 2px 2px 0; white-space:nowrap;}
+  footer{
+    padding:18px 48px; background:var(--ink); color:#cfcfcf; font-size:12.5px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  @media print{
+    body{background:#fff;} .page{max-width:none;}
+    header{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    section{break-inside:avoid-page;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="proj">Swedish North Tower &middot; Interior Finishes &middot; Project 24050001</div>
+  <h1>SNT WWP Builder — User Guide</h1>
+  <p>One Copilot agent turns the current <b>Interiors Planner</b> takt schedule into the week's
+     extract, a draft <b>Weekly Work Plan</b> tab, and two interactive crew-loading dashboards —
+     in a single run, in about two minutes.</p>
+</header>
+
+<main>
+
+<section>
+  <h2>What it produces</h2>
+  <table>
+    <tr><th style="width:34%">Deliverable</th><th>What it is</th></tr>
+    <tr><td><b>Planner_Extract.xlsx / .csv</b></td>
+        <td>Every activity decoded from the takt schedule's colored bars — trade, level, zone,
+            start/finish dates — plus the workday calendar and the trade legend.</td></tr>
+    <tr><td><b>Planner_Extract_Week.xlsx / .csv</b></td>
+        <td>Just the activities touching the target week.</td></tr>
+    <tr><td><b>SNT WWP Shared - WWP.xlsx</b></td>
+        <td>Your WWP workbook with a new tab, <span class="chip">WWP MM.DD.YY - DRAFT</span>,
+            built in the house format: sections by floor/area, S&nbsp;X&nbsp;C day codes, org column,
+            foremen pre-filled from prior weeks.</td></tr>
+    <tr><td><b>SNT-Crew-Loading.html</b></td>
+        <td>Crews-per-day histogram, stacked by trade, filterable.</td></tr>
+    <tr><td><b>SNT-Gantt.html</b></td>
+        <td>Waterfall Gantt by level and zone — trade filters, activity search, next-6-weeks
+            spotlight, draggable day cursor with floating histogram.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Before you start — the one rule that matters</h2>
+  <div class="callout red">
+    <b>Upload the workbooks from your Downloads folder, not the OneDrive picker.</b>
+    When you attach a file by browsing OneDrive/SharePoint, Copilot passes a cloud
+    <i>reference</i> that the pipeline cannot open. Download fresh copies of both workbooks
+    to your computer first, then attach with <b>Upload from this device</b>. This is the
+    single most common reason a run fails.
+  </div>
+</section>
+
+<section>
+  <h2>Running the pipeline — step by step</h2>
+
+  <div class="step"><div class="stepnum">1</div><div class="body">
+    <h3>Download the two live workbooks</h3>
+    <p>From the project's SharePoint, download the current versions of:</p>
+    <ul>
+      <li><b>Interiors Planner</b> (the takt schedule — the "Lookahead" tab)</li>
+      <li><b>SNT WWP Shared</b> (the weekly work plan workbook)</li>
+    </ul>
+    <p>Save both to your <b>Downloads</b> folder. Filenames don't have to be exact —
+       the pipeline identifies each workbook by its contents, not its name.</p>
+  </div></div>
+
+  <div class="step"><div class="stepnum">2</div><div class="body">
+    <h3>Open the agent</h3>
+    <p>In Copilot (M365), open <b>Agents &rarr; SNT WWP Builder</b>. If you don't see it,
+       ask the owner to share the agent link with you.</p>
+  </div></div>
+
+  <div class="step"><div class="stepnum">3</div><div class="body">
+    <h3>Attach both workbooks</h3>
+    <p>Click <b>+</b> in the message box &rarr; <b>Upload from this device</b> &rarr; select both
+       files from Downloads. (Drag-and-drop from the Downloads folder also works.)</p>
+  </div></div>
+
+  <div class="step"><div class="stepnum">4</div><div class="body">
+    <h3>Ask for the run</h3>
+    <p>For the upcoming week, just say:</p>
+    <div class="cmd">Run the pipeline</div>
+    <p>For a specific week, name the Monday:</p>
+    <div class="cmd">Run the pipeline for 2026-08-31</div>
+  </div></div>
+
+  <div class="step"><div class="stepnum">5</div><div class="body">
+    <h3>Check the first line of the report</h3>
+    <p>The report always opens with the week it actually built:</p>
+    <div class="cmd">TARGET WEEK: 2026-08-31 (user-specified)</div>
+    <p>If that date isn't the week you asked for, tell the agent:</p>
+    <div class="cmd">Re-run with this exact command: python snt_pipeline.py 2026-08-31</div>
+  </div></div>
+
+  <div class="step"><div class="stepnum">6</div><div class="body">
+    <h3>Download the deliverables</h3>
+    <p>The agent ends with download links for all seven files. Save them to the week's
+       <b>Runs</b> folder (e.g. <code>Runs\2026-08-31\</code>) so each week's outputs stay together.</p>
+  </div></div>
+</section>
+
+<section>
+  <h2>After the run — the human part</h2>
+  <div class="callout">
+    <b>The new WWP tab is a DRAFT of the takt work only.</b>
+    Before the plan is real, the team still:
+    <ul style="margin-top:6px">
+      <li>adds <b>punch items</b> (from the Daero Zero Punch export),</li>
+      <li>adds <b>commissioning / testing</b> activities,</li>
+      <li>adds <b>Saturday work</b>, comments, and constraints,</li>
+      <li>confirms <b>foremen</b> (pre-filled from prior weeks — verify them),</li>
+      <li>removes any work the team renegotiates in the weekly meeting.</li>
+    </ul>
+  </div>
+  <h3>UNRESOLVED rows</h3>
+  <p>The report may list a handful of rows under <b>"UNRESOLVED rows requiring human
+     assignment"</b> — bar colors that aren't in the Planner's trade legend. Those activities
+     are still in the extract; they just need a person to say which trade owns them. Fix the
+     legend in the Interiors Planner (or assign them by hand in the WWP tab) and they resolve
+     themselves on the next run.</p>
+</section>
+
+<section>
+  <h2>Weekly rhythm</h2>
+  <ol>
+    <li><b>Thursday/Friday:</b> download fresh copies of both workbooks, run the agent for the
+        coming Monday.</li>
+    <li><b>Friday planning:</b> team reviews the DRAFT tab — adds punch, commissioning, Saturday
+        work; confirms foremen; trims renegotiated work.</li>
+    <li><b>Monday–Friday:</b> track daily with the day codes; the dashboards are self-contained
+        HTML — post them anywhere, no install needed.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>If something goes wrong</h2>
+  <table>
+    <tr><th style="width:40%">Symptom</th><th>Fix</th></tr>
+    <tr><td>"Nothing to run: attach this week's Interiors Planner…"</td>
+        <td>The attachments arrived as cloud references. Re-attach with
+            <b>Upload from this device</b> from your Downloads folder.</td></tr>
+    <tr><td>Report shows the wrong week</td>
+        <td>Tell the agent: <code>Re-run with this exact command: python snt_pipeline.py
+            YYYY-MM-DD</code> (the Monday you want).</td></tr>
+    <tr><td>"DUPLICATE knowledge copies of …"</td>
+        <td>The agent's knowledge files have extra copies. Ask the agent owner to open Agent
+            Builder and delete the extras so exactly one of each file remains.</td></tr>
+    <tr><td>"MISSING from knowledge: …"</td>
+        <td>A knowledge file was removed. The agent owner re-adds it from the
+            SNT-Lookahead-WWP-Dashboard package.</td></tr>
+    <tr><td>A stage fails with a Python error</td>
+        <td>The agent stops and shows the full error — nothing after the failed stage is built.
+            Send the error text to the agent owner; don't ask the agent to patch the scripts
+            (it's instructed to refuse, so every run stays reproducible).</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Ground rules the agent follows</h2>
+  <ul>
+    <li>It runs the packaged scripts <b>verbatim</b> — it never rewrites them, so two people
+        running the same files get the same answer.</li>
+    <li>It reads Excel only through the scripts, never by "previewing" the file itself.</li>
+    <li>It stops on the first error instead of improvising around it.</li>
+    <li>Every output states its basis; the WWP tab is always labeled <b>DRAFT</b>.</li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <div>SNT WWP Builder &middot; Swedish North Tower Interior Finishes</div>
+  <div>Draft plan &rarr; team review &rarr; committed plan. The agent does the decoding; the crew does the planning.</div>
+</footer>
+
+</div>
+</body>
+</html>
