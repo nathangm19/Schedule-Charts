@@ -1,4 +1,4 @@
-SNT TAKT RUNNER - RUNBOOK
+SNT WWP BUILDER - RUNBOOK
 
 WHAT THIS AGENT PRODUCES (one run)
 - Planner_Extract.xlsx / .csv - every activity decoded from the takt
