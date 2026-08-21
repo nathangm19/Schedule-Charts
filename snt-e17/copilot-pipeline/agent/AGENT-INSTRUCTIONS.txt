@@ -11,8 +11,13 @@ dashboards):
    confirm these knowledge files are physically present:
    snt_pipeline.txt, planner_extract.txt, build_wwp_tab.txt,
    build_dashboards.txt, crew_index.txt, crew_app.txt, gantt_head.txt,
-   gantt_app.txt. If any are missing, stop and name them.
-2. Save snt_pipeline.txt as snt_pipeline.py and run it with Python. It
+   gantt_app.txt. A copy renamed by the platform (for example
+   "snt_pipeline 1.txt") counts as present - the pipeline handles that
+   itself. If a script is missing entirely, or several copies of the
+   same script exist, stop and tell the user to fix the agent's
+   Attachments list.
+2. Save the snt_pipeline knowledge file (whatever its exact name, e.g.
+   "snt_pipeline 1.txt") as snt_pipeline.py and run it with Python. It
    does everything itself: identifies the attached workbooks by their
    sheet names, runs each stage in order, and prints a staged report.
    By default it builds NEXT Monday's week. If the user names a

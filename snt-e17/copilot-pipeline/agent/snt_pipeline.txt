@@ -34,12 +34,24 @@ def sheet_names(x):
     except Exception:
         return []
 
-def find_script(stem):
-    for ext in (".txt", ".py"):
+def find_asset(stem, exts=(".txt", ".py")):
+    """Exact name first; else tolerate the platform's dedup rename
+    ("name 1.txt") - but only when it is unambiguous."""
+    for ext in exts:
         p = SRC / (stem + ext)
         if p.exists():
             return p
+    cands = sorted(p for ext in exts for p in SRC.glob(stem + " *" + ext))
+    if len(cands) == 1:
+        return cands[0]
+    if len(cands) > 1:
+        sys.exit(f"DUPLICATE knowledge copies of {stem}: "
+                 f"{[c.name for c in cands]} - remove the extras in the "
+                 "agent's Attachments so exactly one remains, then retry.")
     sys.exit(f"MISSING from knowledge: {stem}.txt - re-add it to the agent and retry.")
+
+def find_script(stem):
+    return find_asset(stem)
 
 def run_stage(title, script_stem, staging):
     stage = OUT / ("stage_" + script_stem)
@@ -126,8 +138,10 @@ TPL = ["crew_index", "crew_app", "gantt_head", "gantt_app"]
 EXT = {"crew_index": ".html", "crew_app": ".js", "gantt_head": ".html", "gantt_app": ".js"}
 tpl_files = []
 for t in TPL:
-    hit = next((SRC / (t + e) for e in (".txt", EXT[t]) if (SRC / (t + e)).exists()), None)
-    if hit: tpl_files.append((hit, t + EXT[t]))
+    try:
+        tpl_files.append((find_asset(t, (".txt", EXT[t])), t + EXT[t]))
+    except SystemExit as e:
+        print(e); break
 if extract_full and Path(extract_full).exists() and len(tpl_files) == len(TPL):
     s3 = run_stage("Build the dashboards", "build_dashboards",
                    [(extract_full, "Planner_Extract.xlsx")] + tpl_files)
