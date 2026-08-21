@@ -1,0 +1,136 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SNT Flow Schedule — Crew Loading</title>
+<style>
+:root{
+  --navy:#004F8C; --navy-2:#0067b3; --orange:#F88900; --orange-2:#ffb04d;
+  --ink:#231F20; --mid:#5f666d; --line:#d7dde4; --bg:#eef1f5; --card:#fff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.45 "Segoe UI",-apple-system,system-ui,Roboto,Arial,sans-serif}
+header{background:var(--navy);color:#fff;padding:14px 22px;display:flex;
+  align-items:baseline;gap:18px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.2px}
+header .sub{color:#b9cde4;font-size:14px}
+header .status{margin-left:auto;font-size:14px;font-weight:600;
+  background:rgba(255,255,255,.14);padding:5px 12px;border-radius:3px}
+.wrap{padding:16px 22px 40px;max-width:2100px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--navy);padding:12px 16px}
+.kpi.accent{border-top-color:var(--orange)}
+.kpi .lab{font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--mid);font-weight:700}
+.kpi .val{font-size:38px;font-weight:800;line-height:1.05;color:var(--navy);font-variant-numeric:tabular-nums}
+.kpi.accent .val{color:var(--orange)}
+.kpi .note{font-size:13px;color:var(--mid)}
+.card{background:var(--card);border:1px solid var(--line);margin-bottom:14px}
+.card>h2{margin:0;padding:11px 16px;font-size:14px;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--navy);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.card>h2 .hint{font-weight:400;letter-spacing:0;text-transform:none;color:var(--mid);font-size:13px}
+.pad{padding:14px 16px}
+.grouplab{font-size:12px;font-weight:700;color:var(--mid);letter-spacing:.9px;margin:0 0 6px}
+.grouplab.gap{margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:14px;padding:4px 11px;font-size:13px;
+  cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;color:var(--ink)}
+.chip:hover{border-color:var(--navy)}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
+.chip .sw{width:11px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,.3);flex:0 0 auto}
+.chip .n{font-size:11px;opacity:.7;font-variant-numeric:tabular-nums}
+.chip.clear{border-style:dashed;color:var(--mid)}
+button.btn{background:var(--navy);color:#fff;border:0;padding:7px 14px;font-size:14px;font-weight:600;
+  cursor:pointer;border-radius:3px}
+button.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+button.btn:hover{background:var(--navy-2)}
+button.btn.ghost:hover{background:#eef4fa}
+button.btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.scrub{display:flex;align-items:center;gap:14px;padding:10px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.scrub input[type=range]{flex:1;min-width:220px;accent-color:var(--orange)}
+.scrub .day{font-weight:800;font-size:17px;color:var(--navy);min-width:210px}
+canvas{display:block;width:100%;max-width:100%}
+#tip{position:fixed;z-index:50;pointer-events:none;background:#fff;border:1px solid var(--navy);
+  border-top:3px solid var(--orange);box-shadow:0 6px 22px rgba(0,0,0,.18);padding:9px 12px;font-size:13px;
+  display:none;max-width:460px;max-height:74vh;overflow:hidden}
+#tip .th{font-weight:800;color:var(--navy);margin-bottom:5px;font-size:14px}
+#tip table{border-collapse:collapse;font-size:13px}
+#tip td{padding:1px 8px 1px 0;vertical-align:top}
+#tip td.n{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+#tip .zn{color:var(--mid)}
+.minis{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px 18px;padding:14px 16px}
+.mini h3{margin:0 0 2px;font-size:13px;color:var(--navy);display:flex;align-items:baseline;gap:8px;font-weight:700}
+.mini h3 .pk{font-weight:400;color:var(--mid);font-size:12px;margin-left:auto}
+table.mx{border-collapse:collapse;font-size:13px;width:100%}
+table.mx th,table.mx td{border:1px solid var(--line);padding:4px 6px;text-align:center;font-variant-numeric:tabular-nums}
+table.mx th.z{text-align:left;font-weight:600;white-space:nowrap;max-width:230px;overflow:hidden;
+  text-overflow:ellipsis;cursor:pointer}
+table.mx thead th{background:#f5f7fa;font-size:11px;line-height:1.15;color:var(--mid);font-weight:700;
+  cursor:pointer;vertical-align:bottom;white-space:nowrap}
+table.mx thead th.on,table.mx th.z.on{background:var(--navy);color:#fff}
+table.mx td.tot,table.mx tr.tot td,table.mx tr.tot th{background:#f5f7fa;font-weight:700}
+table.mx tr.roll td,table.mx tr.roll th{background:#e9eff7;font-weight:700}
+table.mx th.z.sub{padding-left:18px;font-weight:500}
+table.mx td.z0{color:#c3c8d2}
+table.mx td.hit{cursor:pointer}
+table.mx td.hit:hover{outline:2px solid var(--orange);outline-offset:-2px}
+.mxhead th i{display:inline-block;width:9px;height:9px;border-radius:2px;border:1px solid rgba(0,0,0,.3);
+  margin-right:3px;vertical-align:-1px}
+.legend{display:flex;flex-wrap:wrap;gap:9px;font-size:12px;color:var(--mid);padding:0 16px 12px}
+.legend i{width:11px;height:11px;display:inline-block;border-radius:2px;margin-right:4px;vertical-align:-1px;
+  border:1px solid rgba(0,0,0,.2)}
+.empty{padding:30px 16px;text-align:center;color:var(--mid);font-size:14px}
+</style>
+
+<header>
+<h1>SNT Flow Schedule &mdash; Crew Loading</h1>
+<div class="sub">Swedish North Tower &middot; Interior Finishes Lvl E&ndash;17 &middot; 2026-08-24 to 2027-03-01 &middot; 129 workdays</div>
+<div class="status">Mortenson</div>
+</header>
+
+<div class="wrap">
+<div class="kpis">
+  <div class="kpi"><div class="lab">Peak crews</div><div class="val" id="kPeak">&mdash;</div><div class="note" id="kPeakOn">&mdash;</div></div>
+  <div class="kpi accent"><div class="lab">On selected day</div><div class="val" id="kDay">&mdash;</div><div class="note" id="kDayOn">&mdash;</div></div>
+  <div class="kpi"><div class="lab">Total crew-days</div><div class="val" id="kTot">&mdash;</div><div class="note">filtered</div></div>
+  <div class="kpi"><div class="lab">Showing</div><div class="val" style="font-size:19px;padding-top:9px" id="selNote">&mdash;</div><div class="note">click to filter &middot; ctrl-click to add</div></div>
+</div>
+
+<div class="card">
+<h2>Filters <span class="hint">nothing selected = everything &middot; ctrl-click for multiple</span>
+<button class="btn ghost" id="reset" style="margin-left:auto">Clear all</button></h2>
+<div class="pad">
+  <div class="grouplab">LEVELS &mdash; one chip takes every zone on that level</div>
+  <div class="chips" id="lchips"></div>
+  <div class="grouplab gap">CHANGE ORDER &amp; UNIQUE ZONES &mdash; consolidated groups</div>
+  <div class="chips" id="zchips"></div>
+  <div class="grouplab gap">TRADES</div>
+  <div class="chips" id="tchips"></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Daily crew loading <span class="hint">stacked by trade &middot; hover a bar for the activities behind it &middot; click to set the day</span>
+<span class="hint" id="winNote" style="margin-left:auto"></span><button class="btn ghost" id="popBtn" title="Open the day's activity list in its own window and drag it to another screen">Pop out &#10531;</button></h2>
+<div class="pad" style="padding-bottom:4px"><canvas id="hist"></canvas></div>
+<div class="scrub">
+  <button class="btn" id="play">&#9654; Play</button>
+  <button class="btn ghost" id="peakBtn">Jump to peak</button>
+  <span class="day" id="scDay">&mdash;</span>
+  <input type="range" id="sc" min="0" value="0" step="1" aria-label="Selected day">
+</div>
+</div>
+
+<div class="card">
+<h2>Crew by level <span class="hint">one panel per level, same y-scale &middot; hover for the trades &middot; click to set the day</span>
+<span class="hint" id="miniNote" style="margin-left:auto"></span></h2>
+<div class="minis" id="minis"></div>
+</div>
+
+<div class="card">
+<h2>Crews by zone and trade <span class="hint">click a cell, row or column to filter</span>
+<span style="margin-left:auto;display:flex;gap:6px">
+  <button class="btn" data-mode="day" id="mDay">Selected day</button>
+  <button class="btn ghost" data-mode="total" id="mTot">Total crew-days</button></span></h2>
+<div class="pad" style="overflow:auto;max-height:640px" id="mx"></div>
+</div>
+</div>
+<div id="tip"></div>

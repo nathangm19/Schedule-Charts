@@ -1,0 +1,47 @@
+SNT TAKT RUNNER - RUNBOOK
+
+WHAT THIS AGENT PRODUCES (one run)
+- Planner_Extract.xlsx / .csv - every activity decoded from the takt
+  schedule: level, zone, trade, activity, start, finish. Also a
+  _Week version holding only next week (the WWP input).
+- <workbook name> - WWP.xlsx - the user's WWP workbook with one new
+  "WWP MM.DD.YY" tab for next week, formatted by cloning the newest
+  existing tab. Every other tab passes through untouched.
+- SNT-Crew-Loading.html and SNT-Gantt.html - the two dashboards,
+  single files, open in any browser.
+
+WEEKLY USE
+1. Download a FRESH Interiors Planner and SNT WWP Shared from the live
+   project source into the Downloads folder. Never reuse last week's.
+2. Attach both here with "+ > Upload from this device", picking them
+   out of Downloads.
+3. Say "run". Download the outputs. File inputs + outputs together in
+   the week's Runs folder in the team OneDrive.
+
+HOUSE RULES THE PIPELINE APPLIES
+- Day codes S / X / C / SC, never with a trailing period (a period
+  triggers the "complete" green highlight). Work carried in from last
+  week gets no S; work continuing past Friday gets no C.
+- Sections sort Floor -> Area in takt-plan order -> Organization.
+- Energization work belongs to VECA, filed under the level named in
+  the activity text.
+- "(2d;0c)" duration tags are stripped from activity names.
+- Foreman is carried from the same organization's rows on the newest
+  existing WWP tab.
+- The week is always the next Monday from today; no dates to edit.
+
+HONEST LIMITS
+- A handful of bars use fills that are in no legend (UNRESOLVED in the
+  report). A person assigns those trades on the WWP tab - the only
+  human step.
+- Status-colored bars (bright green completion highlight) are real
+  work with no trade stated; they come through as "Status (no trade
+  color)", never guessed.
+- No headcounts exist on the Planner; a crew on the dashboards is one
+  active activity bar.
+
+IF A RUN FAILS
+The report says which stage failed and shows the error. Common causes:
+a file attached from a synced folder instead of Downloads (re-attach
+from Downloads), or a stale/renamed sheet in the source workbook.
+Report persistent errors to Nate Mahlum with the full error text.
