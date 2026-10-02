@@ -9,6 +9,11 @@ follows Mortenson brand standards — full digest + approved logo assets in the
   orange map well to on-track / watch / late). Build categorical series from these first.
 - **Type**: Franklin Gothic Medium (heads) / Franklin Gothic Book (body); web fallback
   `"Franklin Gothic Medium", "Libre Franklin", Arial, sans-serif`.
+- **Working font (2026-08-25)**: Nate's standing rule is **Century Gothic** for the Excel/PDF he
+  authors; server-rendered graphics fall back to **Jost** (OFL) where Century Gothic isn't
+  available. Whether a given dashboard uses the Franklin Gothic brand face (official/external) or
+  Nate's Century Gothic/Jost working font (his own deliverable) is a per-piece call — flag it,
+  don't assume. Canonical brand rules: the `mortenson-brand` plugin skill.
 - **Logo**: never drawn, recreated, recolored, or AI-generated — embed the approved PNG files
   exactly as provided (white variant on dark backgrounds, 2-color/black on light), or ship
   without a logo. Never reconstruct the pillars in CSS/SVG.
