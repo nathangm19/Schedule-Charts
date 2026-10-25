@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "nate-skills": {
+      "source": {
+        "source": "github",
+        "repo": "nathangm19/cc-skills-marketplace"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "egm@nate-skills": true
+  }
+}
